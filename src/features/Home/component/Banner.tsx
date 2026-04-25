@@ -111,7 +111,7 @@ export default function Banner() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.8 }}
         >
-          <button className="bg-[#A3E635] hover:bg-[#84CC16] text-white px-8 sm:px-10 py-2.5 sm:py-3 rounded-full font-bold shadow-xl transition transform hover:scale-110 active:scale-95 text-sm sm:text-base">
+          <button className="bg-[#A3E635] hover:bg-[#84CC16] text-white px-8 sm:px-10 py-2.5 sm:py-3 rounded-full font-bold shadow-xl transition transform hover:scale-110 active:scale-95 text-sm sm:text-base cursor-pointer">
             Free Checks
           </button>
         </motion.div>

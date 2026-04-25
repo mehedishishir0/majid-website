@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import Image from "next/image";
 
 export default function Navbar() {
@@ -16,12 +17,19 @@ export default function Navbar() {
 
       {/* Login and Get Started buttons */}
       <div className="flex gap-2 md:gap-4 items-center">
-        <div className="hidden sm:block border border-[#84CC16] px-4 py-2 rounded-full cursor-pointer hover:bg-[#84CC16] hover:text-white transition text-sm md:text-base">
-          Login
-        </div>
-        <div className="bg-[#84CC16] text-white px-4 md:px-6 py-2 rounded-full cursor-pointer hover:bg-[#6ABF12] transition text-sm md:text-base">
-          Get Started
-        </div>
+        {/* Login button */}
+        <Link href="/auth/login">
+          <div className="border border-[#84CC16] px-4 py-2 rounded-full cursor-pointer hover:bg-[#84CC16] hover:text-white transition text-sm md:text-base">
+            Login
+          </div>
+        </Link>
+
+        {/* Get Started button */}
+        <Link href="/shpokeeper/dashboard">
+          <div className="bg-[#84CC16] text-white px-4 md:px-6 py-2 rounded-full cursor-pointer hover:bg-[#6ABF12] transition text-sm md:text-base">
+            Get Started
+          </div>
+        </Link>
       </div>
     </div>
   );
