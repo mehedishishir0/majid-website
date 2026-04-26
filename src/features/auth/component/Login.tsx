@@ -34,7 +34,7 @@ export default function Login() {
       if (result?.error) {
         setError(result.error);
       } else {
-        router.push("/"); // Redirect to home on success
+        router.push("/shpokeeper/dashboard");
       }
     } catch (err) {
       setError("Something went wrong. Please try again.");
