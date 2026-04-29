@@ -6,7 +6,6 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   Search,
   Filter,
   X,
@@ -17,105 +16,54 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
-const paymentData = [
-  {
-    id: "#INV-8858",
-    amount: "$1,650.00",
-    status: "PAID",
-    created: "Nov 05, 2023",
-    order: "App Development",
-    method: "Mastercard •••• 4242",
-    description: "Full development service for mobile application",
-  },
-  {
-    id: "#INV-8842",
-    amount: "$1,200.00",
-    status: "PAID",
-    created: "Oct 12, 2023",
-    order: "IMEI Check Credits",
-    method: "Visa •••• 5555",
-    description: "Bulk purchase of 500 IMEI check credits",
-  },
-  {
-    id: "#INV-8843",
-    amount: "$2,500.00",
-    status: "PENDING",
-    created: "Oct 15, 2023",
-    order: "Device Repair Services",
-    method: "Bank Transfer",
-    description: "Motherboard replacement and screen repair",
-  },
-  {
-    id: "#INV-8844",
-    amount: "$750.00",
-    status: "PAID",
-    created: "Oct 10, 2023",
-    order: "Software License Renewal",
-    method: "PayPal",
-    description: "Annual subscription renewal for diagnostic tool",
-  },
-  {
-    id: "#INV-8845",
-    amount: "$3,000.00",
-    status: "OVERDUE",
-    created: "Sep 30, 2023",
-    order: "Annual Maintenance Fee",
-    method: "American Express",
-    description: "System maintenance and security updates",
-  },
-  {
-    id: "#INV-8846",
-    amount: "$1,500.00",
-    status: "PAID",
-    created: "Oct 18, 2023",
-    order: "Cloud Storage Subscription",
-    method: "Visa •••• 1234",
-    description: "Monthly cloud backup and storage fee",
-  },
-  {
-    id: "#INV-8847",
-    amount: "$980.00",
-    status: "PENDING",
-    created: "Oct 20, 2023",
-    order: "Consultation Services",
-    method: "Bank Transfer",
-    description: "Technical architecture consultation",
-  },
-  {
-    id: "#INV-8848",
-    amount: "$400.00",
-    status: "PAID",
-    created: "Oct 14, 2023",
-    order: "Website Hosting",
-    method: "Mastercard •••• 8888",
-    description: "Premium dedicated hosting service",
-  },
-  {
-    id: "#INV-8849",
-    amount: "$2,200.00",
-    status: "OVERDUE",
-    created: "Sep 29, 2023",
-    order: "Product Development",
-    method: "Visa •••• 9999",
-    description: "New feature implementation and testing",
-  },
-  {
-    id: "#INV-8850",
-    amount: "$675.00",
-    status: "PAID",
-    created: "Oct 21, 2023",
-    order: "IT Support Services",
-    method: "PayPal",
-    description: "Emergency technical support session",
-  },
-];
+import { motion, AnimatePresence } from "framer-motion";
+import { useMyPayments } from "../hooks/usePayments";
+import { Loader2 } from "lucide-react";
 
 export default function PaymentHistory() {
+  const { data: paymentsData, isLoading } = useMyPayments();
+
+  const payments = React.useMemo(() => {
+    return (paymentsData?.data || []).map(
+      (p: {
+        _id: string;
+        amount: number;
+        status: string;
+        paymentStatus: string;
+        createdAt: string;
+        subscriptionId: string;
+      }) => ({
+        id: `#${p._id.substring(0, 8).toUpperCase()}`,
+        amount: `$${p.amount.toFixed(2)}`,
+        status:
+          p.status === "completed" || p.paymentStatus === "paid"
+            ? "PAID"
+            : "PENDING",
+        created: new Date(p.createdAt).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        order: p.subscriptionId ? "Subscription Plan" : "Wallet Top-up",
+        method: "Stripe",
+        description: "Payment for Majid services",
+        raw: p,
+      }),
+    );
+  }, [paymentsData]);
+
   const [selectedPayment, setSelectedPayment] = React.useState<
-    (typeof paymentData)[0] | null
+    (typeof payments)[0] | null
   >(null);
+
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-10 max-w-[1600px] mx-auto flex items-center justify-center h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-[#84CC16]" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-10 max-w-[1600px] mx-auto space-y-8 font-poppins relative">
@@ -182,7 +130,7 @@ export default function PaymentHistory() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {paymentData.map((row, i) => (
+              {payments.map((row: (typeof payments)[number], i: number) => (
                 <motion.tr
                   key={row.id}
                   initial={{ opacity: 0, x: -10 }}
@@ -243,8 +191,13 @@ export default function PaymentHistory() {
         {/* Pagination Section */}
         <div className="px-8 py-8 border-t border-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#FBFDFB]/50">
           <p className="text-sm font-bold text-[#64748B]">
-            Showing <span className="text-[#0F172A] font-black">1 - 10</span> of{" "}
-            <span className="text-[#0F172A] font-black">58</span> results
+            Showing{" "}
+            <span className="text-[#0F172A] font-black">
+              1 - {payments.length}
+            </span>{" "}
+            of{" "}
+            <span className="text-[#0F172A] font-black">{payments.length}</span>{" "}
+            results
           </p>
 
           <div className="flex items-center gap-2">

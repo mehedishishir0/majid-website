@@ -14,10 +14,16 @@ import {
   Phone,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { signOut } from "next-auth/react";
+import { useMyProfile } from "@/features/shoopkeeper/settings/hooks/useSettings";
+import {
+  getShopkeeperDisplayName,
+  getShopkeeperImage,
+  getShopkeeperSubtitle,
+} from "./profile-utils";
 
 const navItems = [
   {
@@ -59,9 +65,13 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [openSubmenu, setOpenSubmenu] = useState<string | null>("Payment"); // Default open as in screenshot
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { data: profileData } = useMyProfile();
+  const user = profileData?.data;
+  const profileName = getShopkeeperDisplayName(user);
+  const profileImage = getShopkeeperImage(user);
+  const profileSubtitle = getShopkeeperSubtitle(user);
 
   const handleLogout = async () => {
     // Clear all storage to ensure no sensitive data remains
@@ -264,18 +274,18 @@ export default function Sidebar() {
             <div className="flex items-center gap-3 px-1">
               <div className="relative w-11 h-11 rounded-2xl overflow-hidden border-2 border-white/10">
                 <Image
-                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150&auto=format&fit=crop"
-                  alt="Profile"
+                  src={profileImage}
+                  alt={profileName}
                   fill
                   className="object-cover"
                 />
               </div>
-              <div className="flex flex-col">
-                <span className="text-[14px] font-black text-[#0F172A] leading-tight">
-                  Demo Name
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-[14px] font-black text-[#0F172A] leading-tight">
+                  {profileName}
                 </span>
-                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-widest">
-                  Super Admin
+                <span className="truncate text-[11px] font-bold text-[#64748B] uppercase tracking-widest">
+                  {profileSubtitle}
                 </span>
               </div>
             </div>
