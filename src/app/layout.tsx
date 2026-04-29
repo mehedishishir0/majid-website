@@ -12,8 +12,11 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "IMOSCAN",
-  description: "Verify Global IMEI Intelligence in Real-Time",
+  title: "IMOSCAN | Verify Global IMEI/EAN in Real-Time",
+  description: "Verify Global IMEI/EAN Intelligence in Real-Time",
+  icons: {
+    icon: "/images/logo.svg",
+  },
 };
 
 export default function RootLayout({
