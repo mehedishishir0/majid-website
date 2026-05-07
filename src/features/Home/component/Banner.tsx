@@ -48,11 +48,11 @@ export default function Banner() {
           // Flatten for initial selection or fallback
           const allServices = response.data.flatMap((cat) => cat.services);
           setServices(allServices);
-          if (allServices.length > 0) {
-            setSelectedService(
-              allServices.find((s) => s.serviceId === 6) || allServices[0],
-            );
-          }
+          // if (allServices.length > 0) {
+          //   setSelectedService(
+          //     allServices.find((s) => s.serviceId === 6) || allServices[0],
+          //   );
+          // }
         }
       } catch (err) {
         console.error("Failed to fetch services:", err);
@@ -91,17 +91,26 @@ export default function Banner() {
     {
       label: "iPhone all in one / best fee",
       keyword: "apple",
-      imei: "356782084912443",
     },
     {
       label: "Samsung full report / best before buy",
       keyword: "samsung",
-      imei: "356782084912443",
     },
     {
       label: "Mac full check / best before buy",
       keyword: "mac",
-      imei: "356782084912443",
+    },
+    {
+      label: "FMI",
+      keyword: "fmi",
+    },
+    {
+      label: "Carrier",
+      keyword: "carrier",
+    },
+    {
+      label: "GSX",
+      keyword: "gsx",
     },
   ];
 
@@ -165,13 +174,18 @@ export default function Banner() {
             <div className="flex min-w-0 flex-1 items-center gap-3 max-md:w-full">
               <Search className="h-6 w-6 shrink-0 text-muted-foreground" />
 
-              <input
-                type="text"
+              <textarea
                 value={imei}
                 onChange={(e) => setImei(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
                 placeholder="Enter IMEI or Serial Number..."
-                className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
+                rows={1}
+                className="min-w-0 flex-1 bg-transparent py-2 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground resize-none overflow-y-auto custom-scrollbar leading-6 h-[44px] max-h-[80px]"
               />
 
               <button
