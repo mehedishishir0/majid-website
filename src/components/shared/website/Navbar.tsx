@@ -65,11 +65,12 @@ export default function Navbar() {
       <div className="mx-auto flex h-full w-full max-w-[1520px] items-center justify-between px-4 sm:px-6 lg:px-0">
         {/* Logo */}
         <Link href="/">
-          <div className="relative h-8 w-[100px] shrink-0 sm:w-[128px] md:h-[50px] md:w-[200px] cursor-pointer">
+          <div className="relative h-8 w-[150px] shrink-0 sm:w-[128px] md:h-[50px] md:w-[200px] cursor-pointer">
             <Image
               src="/images/logo.png"
               alt="Logo"
               fill
+              quality={100}
               className="object-contain "
             />
           </div>
