@@ -801,7 +801,7 @@ export default function ScanDevice() {
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               disabled={isScanning}
-              className="w-full flex items-center justify-between px-8 py-5 rounded-3xl border dark:bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
+              className="w-full flex items-center justify-between px-8 py-2 rounded-3xl border dark:bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
             >
               <div className="flex flex-col items-start">
                 <span className="text-lg font-black text-[#0F172A] group-hover:text-[#84CC16] transition-colors">
@@ -881,7 +881,7 @@ export default function ScanDevice() {
               value={imei}
               onChange={(e) => setImei(e.target.value)}
               disabled={isScanning}
-              className="w-full px-8 py-6 rounded-full border border-gray-100 bg-[#FBFBFB] focus:border-[#84CC16] focus:bg-white focus:ring-4 focus:ring-[#84CC16]/5 outline-none transition-all text-lg font-semibold text-[#0F172A] placeholder:text-gray-400 disabled:opacity-50"
+              className="w-full px-8 py-3 rounded-full border border-gray-100 bg-[#FBFBFB] focus:border-[#84CC16] focus:bg-white focus:ring-4 focus:ring-[#84CC16]/5 outline-none transition-all text-lg font-semibold text-[#0F172A] placeholder:text-gray-400 disabled:opacity-50"
             />
             <button
               onClick={() => setIsScannerOpen(true)}
