@@ -1,5 +1,8 @@
+"use client";
+
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, Info, Check } from "lucide-react";
+import { useState } from "react";
 import {
   ServiceCategory,
   IMEIService,
@@ -22,6 +25,24 @@ export const ServiceSelector = ({
   setIsDropdownOpen,
   disabled,
 }: ServiceSelectorProps) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter categories and services based on search term
+  const filteredCategories = serviceCategories
+    .map((cat) => ({
+      ...cat,
+      services: cat.services.filter((svc) =>
+        svc.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    }))
+    .filter((cat) => cat.services.length > 0);
+
+  // Get total services count
+  const totalServices = serviceCategories.reduce(
+    (total, cat) => total + cat.services.length,
+    0,
+  );
+
   return (
     <div className="relative">
       <span className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3 block ml-4">
@@ -31,20 +52,20 @@ export const ServiceSelector = ({
       <button
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         disabled={disabled}
-        className="w-full flex items-center justify-between px-8 py-2 rounded-3xl border dark:bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
+        className="w-full flex items-center justify-between px-6 py-4 rounded-2xl border bg-white hover:border-[#84CC16]/30 transition-all cursor-pointer group disabled:opacity-50"
       >
         <div className="flex flex-col items-start">
-          <span className="text-lg font-black text-[#0F172A] group-hover:text-[#84CC16] transition-colors">
-            {selectedService ? selectedService.name : "Select Service"}
+          <span className="text-base font-black text-[#0F172A] group-hover:text-[#84CC16] transition-colors">
+            {selectedService ? selectedService.name : "Choose Service"}
           </span>
           {selectedService && (
-            <span className="text-[12px] font-bold text-[#84CC16]">
+            <span className="text-[11px] font-bold text-[#84CC16] mt-0.5">
               Price: {selectedService.priceLabel}
             </span>
           )}
         </div>
         <ChevronDown
-          size={24}
+          size={20}
           className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`}
         />
       </button>
@@ -55,47 +76,151 @@ export const ServiceSelector = ({
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute left-0 right-0 mt-4 bg-white rounded-[32px] shadow-2xl border border-gray-100 overflow-hidden z-[100] max-h-[400px] overflow-y-auto custom-scrollbar p-3"
+            className="absolute left-0 right-0 mt-2 z-[100] w-[min(400px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-border bg-white shadow-2xl"
           >
-            {serviceCategories.map((cat) => (
-              <div key={cat.category} className="mb-4 last:mb-0">
-                <div className="px-4 py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-2">
-                  {cat.category}
-                </div>
-                {cat.services.map((svc) => (
-                  <button
-                    key={svc._id}
-                    onClick={() => {
-                      setSelectedService(svc);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full flex flex-col items-start p-4 rounded-2xl transition-all mb-1 ${
-                      selectedService?._id === svc._id
-                        ? "bg-[#84CC16]/10 border-2 border-[#84CC16]/20"
-                        : "hover:bg-gray-50 border-2 border-transparent"
-                    }`}
-                  >
-                    <span
-                      className={`text-[15px] font-black text-left ${
-                        selectedService?._id === svc._id
-                          ? "text-[#84CC16]"
-                          : "text-[#0F172A]"
-                      }`}
-                    >
-                      {svc.name}
-                    </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                        Price:
-                      </span>
-                      <span className="text-[12px] font-black text-[#84CC16]">
-                        {svc.priceLabel}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+            {/* Search Input */}
+            <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search for a service..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl outline-none focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/20 transition-all text-sm font-medium text-[#0F172A] placeholder:text-gray-400"
+                  autoFocus
+                />
               </div>
-            ))}
+            </div>
+
+            {/* Services List */}
+            <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+              {filteredCategories.length > 0 ? (
+                filteredCategories.map((cat) => (
+                  <div
+                    key={cat.category}
+                    className="border-b border-gray-50 last:border-0"
+                  >
+                    {/* Category Header */}
+                    <div className="px-4 py-2 bg-gray-50/30">
+                      <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                        {cat.category}
+                      </h3>
+                    </div>
+
+                    {/* Services */}
+                    <div className="p-1">
+                      {cat.services.map((svc) => {
+                        const isApple =
+                          cat.category.toLowerCase().includes("apple") ||
+                          svc.name.toLowerCase().includes("apple") ||
+                          svc.name.toLowerCase().includes("iphone");
+                        const isSamsung =
+                          cat.category.toLowerCase().includes("samsung") ||
+                          svc.name.toLowerCase().includes("samsung");
+                        const isSelected = selectedService?._id === svc._id;
+
+                        return (
+                          <button
+                            key={svc._id}
+                            onClick={() => {
+                              setSelectedService(svc);
+                              setIsDropdownOpen(false);
+                              setSearchTerm("");
+                            }}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all group ${
+                              isSelected
+                                ? "bg-[#84CC16] text-white shadow-sm"
+                                : "hover:bg-gray-50"
+                            }`}
+                          >
+                            {/* Icon */}
+                            <div
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected
+                                  ? "bg-white/20 text-white"
+                                  : isApple
+                                    ? "bg-gray-100 text-gray-600"
+                                    : isSamsung
+                                      ? "bg-blue-50 text-blue-500"
+                                      : "bg-green-50 text-green-500"
+                              }`}
+                            >
+                              <Info size={18} />
+                            </div>
+
+                            {/* Service Info */}
+                            <div className="flex flex-col items-start flex-1 min-w-0">
+                              <span
+                                className={`text-[13px] font-black truncate w-full text-left ${
+                                  isSelected ? "text-white" : "text-[#0F172A]"
+                                }`}
+                              >
+                                {svc.name}
+                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span
+                                  className={`text-[9px] font-bold uppercase tracking-wider ${
+                                    isSelected
+                                      ? "text-white/70"
+                                      : "text-gray-400"
+                                  }`}
+                                >
+                                  ID: {svc.serviceId || "N/A"}
+                                </span>
+                                <div className="w-0.5 h-0.5 rounded-full bg-current opacity-30" />
+                                <span
+                                  className={`text-[10px] font-black ${
+                                    isSelected ? "text-white" : "text-[#84CC16]"
+                                  }`}
+                                >
+                                  {svc.priceLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Selected Check Icon */}
+                            {isSelected && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                layoutId="selected-check"
+                              >
+                                <Check size={16} strokeWidth={3} />
+                              </motion.div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center space-y-2">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                    <Search size={20} className="text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 font-medium text-sm">
+                    No services found for &quot;{searchTerm}&quot;
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {totalServices} Services Available
+              </span>
+              {searchTerm && filteredCategories.length > 0 && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="text-[10px] font-black text-[#84CC16] uppercase tracking-wider hover:underline"
+                >
+                  Clear Search
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

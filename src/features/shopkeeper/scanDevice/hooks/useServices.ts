@@ -1,3 +1,4 @@
+// hooks/useServices.ts
 import { useState, useEffect } from "react";
 import { getServicesApi } from "../../scanDevice/api/scanDevice.api";
 import {
@@ -30,11 +31,13 @@ export const useServices = (queryServiceId: string | null) => {
             const found = allServices.find(
               (s) => s.serviceId === parseInt(queryServiceId),
             );
-            if (found) setSelectedService(found);
+            if (found) {
+              setSelectedService(found);
+            } else {
+              setSelectedService(null);
+            }
           } else {
-            const found =
-              allServices.find((s) => s.serviceId === 6) || allServices[0];
-            if (found) setSelectedService(found);
+            setSelectedService(null);
           }
         }
       } catch (err) {
