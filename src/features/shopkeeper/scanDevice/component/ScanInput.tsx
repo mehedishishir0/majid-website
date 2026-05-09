@@ -18,6 +18,7 @@ export const ScanInput = ({
 }: ScanInputProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Auto-resize textarea based on content
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";

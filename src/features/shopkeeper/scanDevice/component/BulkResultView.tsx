@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import {
   ChevronLeft,
@@ -7,26 +9,21 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   XCircle,
+  ChevronDown,
+  ArrowLeft,
 } from "lucide-react";
-import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { ImeiReportDetails } from "./ImeiReportDetails";
 import { CertificatePDF } from "./CertificatePDF";
 import {
   BatchImeiResponse,
-  IMEIResult,
+  BatchImeiItemResult,
 } from "../../scanDevice/types/scanDevice.types";
-import { CERTIFICATE_PDF_WIDTH } from "@/utils/constants";
 
 interface BulkResultViewProps {
   batchResult: BatchImeiResponse | null;
   onClear: () => void;
+  onBack: () => void;
   onDownloadCertificate: (
     elementIds: string[],
     filename: string,
@@ -39,27 +36,66 @@ export const BulkResultView = ({
   onClear,
   onDownloadCertificate,
   isDownloading,
+  onBack,
 }: BulkResultViewProps) => {
   const [selectedBatchIndex, setSelectedBatchIndex] = useState(0);
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
 
-  if (!batchResult) return null;
-
-  const batchRows = Array.isArray(batchResult.data) ? batchResult.data : [];
-  const successfulBatchRows = batchRows.filter(
-    (row): row is typeof row & { data: IMEIResult } =>
-      Boolean(row.ok && row.data),
+  const batchRows = useMemo(() => batchResult?.data ?? [], [batchResult]);
+  const successfulBatchRows = useMemo(
+    () =>
+      batchRows.filter(
+        (
+          row,
+        ): row is BatchImeiItemResult & {
+          data: NonNullable<typeof row.data>;
+        } => Boolean(row.ok && row.data),
+      ),
+    [batchRows],
   );
-  const selectedBatchRow = batchRows[selectedBatchIndex] ?? null;
+  const selectedBatchRow = useMemo(
+    () => batchRows[selectedBatchIndex] ?? null,
+    [batchRows, selectedBatchIndex],
+  );
 
-  const handleDownloadSelectedBulkCertificate = () => {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
+        setIsSelectOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectedBatchIndexChange = useCallback((value: number) => {
+    setSelectedBatchIndex(value);
+    setIsSelectOpen(false);
+  }, []);
+
+  const handlePrevClick = useCallback(() => {
+    setSelectedBatchIndex((current) => Math.max(current - 1, 0));
+  }, []);
+
+  const handleNextClick = useCallback(() => {
+    setSelectedBatchIndex((current) =>
+      Math.min(current + 1, batchRows.length - 1),
+    );
+  }, [batchRows.length]);
+
+  const handleDownloadSelectedBulkCertificate = useCallback(() => {
     if (!selectedBatchRow?.ok || !selectedBatchRow.data) return;
     onDownloadCertificate(
       [`certificate-pdf-bulk-${selectedBatchIndex}`],
       `Certificate_${selectedBatchRow.imei}.pdf`,
     );
-  };
+  }, [onDownloadCertificate, selectedBatchIndex, selectedBatchRow]);
 
-  const handleDownloadAllBulkCertificates = () => {
+  const handleDownloadAllBulkCertificates = useCallback(() => {
     if (successfulBatchRows.length === 0) return;
     onDownloadCertificate(
       successfulBatchRows.map(
@@ -67,10 +103,27 @@ export const BulkResultView = ({
       ),
       `Bulk_IMEI_Certificates_${new Date().toISOString().slice(0, 10)}.pdf`,
     );
-  };
+  }, [onDownloadCertificate, successfulBatchRows]);
+
+  if (!batchResult) return null;
 
   return (
     <div className="w-full space-y-6 pb-10">
+      {/* Back Button */}
+      <button
+        onClick={() => {
+          console.log("Back button clicked");
+          onBack();
+        }}
+        className="flex items-center gap-2 text-[#64748B] hover:text-[#0F172A] font-bold transition group cursor-pointer"
+      >
+        <ArrowLeft
+          size={18}
+          className="group-hover:-translate-x-1 transition-transform"
+        />
+        Scan another device
+      </button>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -91,7 +144,10 @@ export const BulkResultView = ({
           </div>
 
           <button
-            onClick={onClear}
+            onClick={() => {
+              console.log("Clear button clicked");
+              onClear();
+            }}
             className="inline-flex items-center justify-center rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-black text-[#64748B] transition hover:bg-gray-50 hover:text-[#0F172A]"
           >
             Clear Results
@@ -108,7 +164,7 @@ export const BulkResultView = ({
               </span>
             </div>
             <p className="mt-3 text-2xl font-black text-slate-900">
-              {batchResult.summary?.total ?? 0}
+              {batchResult.summary.total}
             </p>
           </div>
           <div className="rounded-2xl border border-lime-100 bg-lime-50 p-4">
@@ -119,7 +175,7 @@ export const BulkResultView = ({
               </span>
             </div>
             <p className="mt-3 text-2xl font-black text-lime-700">
-              {batchResult.summary?.successCount ?? 0}
+              {batchResult.summary.successCount}
             </p>
           </div>
           <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
@@ -130,7 +186,7 @@ export const BulkResultView = ({
               </span>
             </div>
             <p className="mt-3 text-2xl font-black text-red-600">
-              {batchResult.summary?.failedCount ?? 0}
+              {batchResult.summary.failedCount}
             </p>
           </div>
         </div>
@@ -148,7 +204,7 @@ export const BulkResultView = ({
               ) : (
                 <Download size={16} />
               )}
-              Download All Certificates
+              Download All Certificates ({successfulBatchRows.length})
             </button>
           </div>
         )}
@@ -167,29 +223,43 @@ export const BulkResultView = ({
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-              <Select
-                value={String(selectedBatchIndex)}
-                onValueChange={(value) => setSelectedBatchIndex(Number(value))}
-              >
-                <SelectTrigger className="w-full min-w-[260px] rounded-xl border-slate-200 bg-white">
-                  <SelectValue placeholder="Select a result" />
-                </SelectTrigger>
-                <SelectContent>
-                  {batchRows.map((row, index) => (
-                    <SelectItem
-                      key={`${row.rowNumber}-${row.imei}-${index}`}
-                      value={String(index)}
-                    >
-                      {`Row ${row.rowNumber} - ${row.imei}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Custom Dropdown */}
+              <div className="relative" ref={selectRef}>
+                <button
+                  onClick={() => setIsSelectOpen(!isSelectOpen)}
+                  className="w-full min-w-[260px] flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-slate-300 transition-all"
+                >
+                  <span className="truncate">
+                    {selectedBatchRow
+                      ? `Row ${selectedBatchRow.rowNumber} - ${selectedBatchRow.imei} ${!selectedBatchRow.ok ? "(Failed)" : ""}`
+                      : "Select a result"}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${isSelectOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {isSelectOpen && (
+                  <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                    {batchRows.map((row, index) => (
+                      <button
+                        key={`${row.rowNumber}-${row.imei}-${index}`}
+                        onClick={() => handleSelectedBatchIndexChange(index)}
+                        className={`w-full px-4 py-2 text-left text-sm font-medium transition-colors hover:bg-slate-50 ${
+                          selectedBatchIndex === index
+                            ? "bg-[#84CC16]/10 text-[#84CC16]"
+                            : "text-slate-700"
+                        }`}
+                      >
+                        {`Row ${row.rowNumber} - ${row.imei} ${!row.ok ? "(Failed)" : ""}`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <button
-                onClick={() =>
-                  setSelectedBatchIndex((current) => Math.max(current - 1, 0))
-                }
+                onClick={handlePrevClick}
                 disabled={selectedBatchIndex === 0}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -198,11 +268,7 @@ export const BulkResultView = ({
               </button>
 
               <button
-                onClick={() =>
-                  setSelectedBatchIndex((current) =>
-                    Math.min(current + 1, batchRows.length - 1),
-                  )
-                }
+                onClick={handleNextClick}
                 disabled={selectedBatchIndex === batchRows.length - 1}
                 className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -216,6 +282,7 @@ export const BulkResultView = ({
 
       {/* Selected Result Details */}
       <motion.div
+        key={selectedBatchIndex}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -243,7 +310,7 @@ export const BulkResultView = ({
                 serviceId: selectedBatchRow.serviceId,
                 cached: selectedBatchRow.cached,
                 message: selectedBatchRow.message,
-                rowNumber: selectedBatchIndex + 1,
+                rowNumber: selectedBatchRow.rowNumber,
                 totalRows: batchRows.length,
               }}
             />
@@ -289,13 +356,13 @@ export const BulkResultView = ({
         ) : null}
       </motion.div>
 
-      {/* Hidden Certificate Containers for Bulk */}
+      {/* Hidden Certificate Containers */}
       <div
         style={{
           position: "fixed",
           top: 0,
           left: "-10000px",
-          width: `${CERTIFICATE_PDF_WIDTH}px`,
+          width: "1100px",
           pointerEvents: "none",
           zIndex: -1,
           overflow: "hidden",

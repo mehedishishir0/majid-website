@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+// hooks/usePersistedReport.ts
+import { useEffect, useRef } from "react";
 import {
   IMEIResult,
   BatchImeiResponse,
@@ -23,7 +24,9 @@ export const usePersistedReport = (
   singleReportMeta: { provider?: string; serviceId?: number } | null,
   onRestore: (state: PersistedReportState) => void,
 ) => {
-  // Restore from localStorage on mount
+  const isFirstRender = useRef(true); // প্রথম রেন্ডার ট্র্যাক করার জন্য
+
+  // Restore from localStorage on mount (শুধুমাত্র একবার)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -39,41 +42,48 @@ export const usePersistedReport = (
       console.error("Failed to restore last IMEI report:", error);
       window.localStorage.removeItem(LAST_REPORT_STORAGE_KEY);
     }
-  }, [onRestore]);
+  }, []); // খালি dependency array - শুধুমাত্র মাউন্টে একবার চলবে
 
-  // Save single result to localStorage
+  // Save single result to localStorage (শুধুমাত্র result পরিবর্তিত হলেই)
   useEffect(() => {
-    if (typeof window === "undefined" || !scanResult) return;
+    if (typeof window === "undefined") return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
 
-    const payload: PersistedReportState = {
-      version: 1,
-      mode: "single",
-      savedAt: new Date().toISOString(),
-      singleResult: scanResult,
-      singleMeta: singleReportMeta ?? undefined,
-    };
-
-    window.localStorage.setItem(
-      LAST_REPORT_STORAGE_KEY,
-      JSON.stringify(payload),
-    );
+    if (scanResult) {
+      const payload: PersistedReportState = {
+        version: 1,
+        mode: "single",
+        savedAt: new Date().toISOString(),
+        singleResult: scanResult,
+        singleMeta: singleReportMeta ?? undefined,
+      };
+      window.localStorage.setItem(
+        LAST_REPORT_STORAGE_KEY,
+        JSON.stringify(payload),
+      );
+    }
   }, [scanResult, singleReportMeta]);
 
-  // Save batch result to localStorage
+  // Save batch result to localStorage (শুধুমাত্র batchResult পরিবর্তিত হলেই)
   useEffect(() => {
-    if (typeof window === "undefined" || !batchResult) return;
+    if (typeof window === "undefined") return;
+    if (isFirstRender.current) return;
 
-    const payload: PersistedReportState = {
-      version: 1,
-      mode: "bulk",
-      savedAt: new Date().toISOString(),
-      batchResult,
-      selectedBatchIndex,
-    };
-
-    window.localStorage.setItem(
-      LAST_REPORT_STORAGE_KEY,
-      JSON.stringify(payload),
-    );
+    if (batchResult) {
+      const payload: PersistedReportState = {
+        version: 1,
+        mode: "bulk",
+        savedAt: new Date().toISOString(),
+        batchResult,
+        selectedBatchIndex,
+      };
+      window.localStorage.setItem(
+        LAST_REPORT_STORAGE_KEY,
+        JSON.stringify(payload),
+      );
+    }
   }, [batchResult, selectedBatchIndex]);
 };

@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -14,11 +16,7 @@ import {
 } from "lucide-react";
 import { IMEIResult } from "../../scanDevice/types/scanDevice.types";
 import { ImeiReportDetails } from "./ImeiReportDetails";
-import {
-  CERTIFICATE_PDF_HEIGHT,
-  CERTIFICATE_PDF_WIDTH,
-  CertificatePDF,
-} from "./CertificatePDF";
+import { CertificatePDF } from "./CertificatePDF";
 import {
   getChecksArray,
   getStatusColor,
@@ -28,10 +26,7 @@ import {
 interface SingleResultViewProps {
   scanResult: IMEIResult;
   singleReportMeta: { provider?: string; serviceId?: number } | null;
-  selectedService?: {
-    name?: string;
-    serviceId?: number | null;
-  } | null;
+  selectedService?: { name?: string; serviceId?: number | null } | null;
   onBack: () => void;
   onDownload: () => void;
   isDownloading: boolean;
@@ -259,8 +254,11 @@ export const SingleResultView = ({
                 <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest block">
                   {item.label}
                 </span>
-                <p className="text-sm font-bold text-[#0F172A] truncate">
-                  {item.value as string}
+                <p
+                  className="text-sm font-bold text-[#0F172A] truncate"
+                  title={String(item.value)}
+                >
+                  {String(item.value)}
                 </p>
               </div>
             ))}
@@ -293,8 +291,8 @@ export const SingleResultView = ({
           position: "fixed",
           top: 0,
           left: "-10000px",
-          width: `${CERTIFICATE_PDF_WIDTH}px`,
-          minHeight: `${CERTIFICATE_PDF_HEIGHT}px`,
+          width: "1100px",
+          minHeight: "800px",
           backgroundColor: "white",
           pointerEvents: "none",
           zIndex: -1,
