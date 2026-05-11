@@ -17,10 +17,8 @@ import {
   Sparkles,
   Gauge,
   Database,
-  RadioTower,
   Tag,
   Shield,
-  Globe,
 } from "lucide-react";
 import { IMEIResult } from "../../scanDevice/types/scanDevice.types";
 import { CertificatePDF } from "./CertificatePDF";
@@ -117,6 +115,39 @@ function RiskArc({ score }: { score: number }) {
   );
 }
 
+// Helper function to parse provider data rows
+const parseProviderRows = (
+  html: string,
+): { label: string; value: string }[] => {
+  if (!html) return [];
+
+  const cleanText = html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/?(font|span|b|strong|i|em)[^>]*>/gi, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .trim();
+
+  const rows: { label: string; value: string }[] = [];
+  const lines = cleanText.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const colonIndex = trimmed.indexOf(":");
+    if (colonIndex > 0) {
+      const label = trimmed.substring(0, colonIndex).trim();
+      const value = trimmed.substring(colonIndex + 1).trim();
+      rows.push({ label, value });
+    } else {
+      rows.push({ label: "Info", value: trimmed });
+    }
+  }
+
+  return rows;
+};
+
 export const SingleResultView = ({
   scanResult,
   singleReportMeta,
@@ -130,6 +161,33 @@ export const SingleResultView = ({
   const riskScore = scanResult.riskMeter?.score || 0;
   const riskColor = getRiskColor(riskScore);
   const statusTone = getStatusColor(scanResult.deviceStatus || "");
+
+  // Get provider data from API response
+  const providerData = scanResult.providerData as
+    | {
+        result?: string;
+        imei?: string;
+        balance?: number;
+        price?: string;
+        id?: number;
+        status?: string;
+        ip?: string;
+      }
+    | undefined;
+
+  const providerHTML = providerData?.result || "";
+  const providerRows = parseProviderRows(providerHTML);
+
+  // Get device image from provider HTML if exists
+  const getDeviceImage = (html: string): string | null => {
+    const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/);
+    return imgMatch ? imgMatch[1] : null;
+  };
+
+  const deviceImage = getDeviceImage(providerHTML);
+  const deviceNameFromProvider = providerRows.find(
+    (r) => r.label === "Device",
+  )?.value;
 
   return (
     <div className="p-4 md:p-10 max-w-6xl mx-auto space-y-8 font-poppins">
@@ -151,9 +209,7 @@ export const SingleResultView = ({
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[32px] overflow-hidden shadow-xl"
       >
-        {/* Header Content */}
         <div className="relative px-6 py-8 md:px-8 md:py-10">
-          {/* Decorative elements */}
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
           <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-[#84CC16]/10 blur-3xl" />
 
@@ -165,20 +221,30 @@ export const SingleResultView = ({
                   <Sparkles size={11} className="text-[#84CC16]" />
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#84CC16]">
-                  REPORT
+                  DEVICE REPORT
                 </p>
               </div>
 
               <div className="mt-5 flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#84CC16]/15 border border-[#84CC16]/30">
-                  <Smartphone size={22} className="text-[#84CC16]" />
-                </div>
+                {deviceImage ? (
+                  <img
+                    src={deviceImage}
+                    alt="Device"
+                    className="h-14 w-14 object-contain rounded-2xl bg-white/10 p-2"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#84CC16]/15 border border-[#84CC16]/30">
+                    <Smartphone size={22} className="text-[#84CC16]" />
+                  </div>
+                )}
                 <div className="min-w-0">
                   <h2 className="text-2xl font-black text-white md:text-3xl">
-                    {scanResult.deviceName || "Unknown Device"}
+                    {deviceNameFromProvider ||
+                      scanResult.deviceName ||
+                      "Unknown Device"}
                   </h2>
                   <p className="mt-1 font-mono text-xs font-semibold text-white/40 tracking-widest">
-                    IMEI: {scanResult.imei}
+                    IMEI: {providerData?.imei || scanResult.imei}
                   </p>
                 </div>
               </div>
@@ -189,7 +255,7 @@ export const SingleResultView = ({
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-white ${statusTone}`}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                  {scanResult.deviceStatus || "Unknown"}
+                  {scanResult.deviceStatus}
                 </span>
                 {singleReportMeta?.provider && (
                   <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/50">
@@ -199,7 +265,7 @@ export const SingleResultView = ({
               </div>
             </div>
 
-            {/* Right: AI Insight + Risk Arc */}
+            {/* Right: Risk Arc + AI Insight */}
             <div className="flex items-center gap-6 bg-white/5 rounded-2xl p-4 backdrop-blur-sm">
               <RiskArc score={riskScore} />
               <div className="max-w-[200px]">
@@ -236,7 +302,7 @@ export const SingleResultView = ({
                 icon: Tag,
               },
               {
-                label: "Data Source",
+                label: "Provider",
                 value: singleReportMeta?.provider || "IMEI Service",
                 icon: Database,
               },
@@ -265,7 +331,95 @@ export const SingleResultView = ({
         </div>
       </motion.div>
 
-      {/* Checks Grid & Report Actions */}
+      {/* Provider Data Section - Enhanced UI */}
+      {providerRows.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#84CC16]/10 rounded-xl">
+              <Smartphone size={20} className="text-[#84CC16]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-tight">
+                Device Specifications
+              </h3>
+              <p className="text-[11px] font-medium text-gray-400">
+                Detailed breakdown from{" "}
+                {singleReportMeta?.provider || "Network Provider"}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {providerRows.map((row, idx) => {
+              const labelLower = row.label.toLowerCase();
+
+              // Logical color & icon mapping
+              const isPositive =
+                labelLower.includes("warranty") ||
+                labelLower.includes("coverage") ||
+                labelLower.includes("valid");
+              const isNeutral =
+                labelLower.includes("model") ||
+                labelLower.includes("color") ||
+                labelLower.includes("capacity");
+
+              let statusClass = "bg-slate-50 text-slate-500";
+              let Icon = Tag;
+
+              if (isPositive) {
+                statusClass = "bg-emerald-50 text-emerald-500";
+                Icon = ShieldCheck;
+              } else if (
+                labelLower.includes("carrier") ||
+                labelLower.includes("sim")
+              ) {
+                statusClass = "bg-blue-50 text-blue-500";
+                Icon = Cpu;
+              } else if (isNeutral) {
+                statusClass = "bg-slate-50 text-slate-600";
+                Icon = Smartphone;
+              }
+
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-[#84CC16]/30 hover:shadow-xl hover:shadow-gray-200/40 transition-all duration-300"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      {/* Large Icon Box like Security Checks */}
+                      <div className={`p-3 rounded-xl ${statusClass} shrink-0`}>
+                        <Icon size={22} strokeWidth={2.5} />
+                      </div>
+
+                      <div className="space-y-1">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          {row.label}
+                        </h4>
+                        <p className="text-[15px] font-bold text-[#0F172A] leading-snug break-words">
+                          {row.value}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status Indicator like Security Checks */}
+                    <div className="hidden sm:flex h-6 w-6 rounded-full bg-gray-50 items-center justify-center border border-gray-100">
+                      <div
+                        className={`h-1.5 w-1.5 rounded-full ${isPositive ? "bg-emerald-500" : "bg-slate-300"}`}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Security Checks */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <h3 className="text-sm font-black text-[#0F172A] mb-4 flex items-center gap-2">
@@ -425,9 +579,13 @@ export const SingleResultView = ({
           </div>
           <div>
             <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-1">
-              Report Status
+              Balance
             </p>
-            <p className="text-sm font-bold text-emerald-600">Completed</p>
+            <p className="text-sm font-bold text-gray-700">
+              {providerData?.balance !== undefined
+                ? `$${providerData.balance.toFixed(3)}`
+                : "N/A"}
+            </p>
           </div>
         </div>
       </motion.div>
