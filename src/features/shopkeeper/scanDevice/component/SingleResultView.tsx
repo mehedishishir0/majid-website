@@ -596,7 +596,7 @@ export const SingleResultView = ({
             </p>
             <p className="text-sm font-bold text-gray-700">
               {providerData?.balance !== undefined
-                ? `$${providerData.balance.toFixed(3)}`
+                ? `$${providerData?.balance}`
                 : "N/A"}
             </p>
           </div>
