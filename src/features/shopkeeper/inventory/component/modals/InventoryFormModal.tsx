@@ -89,6 +89,7 @@ import {
   useCreateFromBarcodeBulk,
   useCreateCustomer,
   useCustomersByShopkeeper,
+  useCreateInvoice,
 } from "../../hooks/useInventory";
 import { ScanResultModal } from "./ScanResultModal";
 
@@ -272,6 +273,7 @@ export function InventoryFormModal({
     useCreateFromBarcode();
   const { mutate: createCustomerMutate, isPending: isCreatingCustomer } =
     useCreateCustomer();
+  const { mutate: createInvoiceMutate } = useCreateInvoice();
   const { data: session } = useSession();
   const { data: customersData } = useCustomersByShopkeeper(
     (session?.user as { id?: string })?.id || "",
@@ -535,10 +537,22 @@ export function InventoryFormModal({
           }
         />,
       ).toBlob();
+
+      const fileName = `Invoice-${values.customerName || "Customer"}-${new Date().getTime()}.pdf`;
+
+      if ((session?.user as { id?: string })?.id) {
+        const file = new File([blob], fileName, { type: "application/pdf" });
+        createInvoiceMutate({
+          shopkeeperId: (session?.user as { id: string }).id,
+          type: "sell",
+          invoice: file,
+        });
+      }
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Invoice-${values.customerName || "Customer"}-${new Date().getTime()}.pdf`;
+      link.download = fileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

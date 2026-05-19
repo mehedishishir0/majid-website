@@ -214,7 +214,7 @@ export default function Inventory() {
                             className="flex items-center gap-2 p-3 font-bold text-xs rounded-lg text-[#84CC16] hover:bg-[#84CC16]/10 cursor-pointer"
                           >
                             <DollarSign size={14} />
-                            Record Sales
+                            Sell
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
