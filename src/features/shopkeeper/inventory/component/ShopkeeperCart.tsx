@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import CartInvoicePDF from "./CartInvoicePDF";
+import InvoicePreviewModal from "./InvoicePreviewModal";
 
 export default function ShopkeeperCart() {
   const router = useRouter();
@@ -43,6 +44,8 @@ export default function ShopkeeperCart() {
   const { mutateAsync: createInvoice } = useCreateInvoice();
   const [searchQuery, setSearchQuery] = useState("");
   const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [editedPrices, setEditedPrices] = useState<Record<string, number>>({});
 
   const cartItems = useMemo(() => cartData?.data || [], [cartData]);
 
@@ -53,9 +56,9 @@ export default function ShopkeeperCart() {
     return cartItems.filter((cartItem) => {
       const item = cartItem.itemId;
       return (
-        item.itemName?.toLowerCase().includes(query) ||
-        item.imeiNumber?.toLowerCase().includes(query) ||
-        item.sku?.toLowerCase().includes(query)
+        item?.itemName?.toLowerCase().includes(query) ||
+        item?.imeiNumber?.toLowerCase().includes(query) ||
+        item?.sku?.toLowerCase().includes(query)
       );
     });
   }, [cartItems, searchQuery]);
@@ -65,7 +68,12 @@ export default function ShopkeeperCart() {
     0,
   );
   const totalValue = cartItems.reduce((sum, cartItem) => {
-    return sum + (cartItem.itemId?.expectedPrice || 0) * cartItem.quantity;
+    const originalPrice = cartItem.itemId?.expectedPrice || 0;
+    const price =
+      editedPrices[cartItem._id] !== undefined
+        ? editedPrices[cartItem._id]
+        : originalPrice;
+    return sum + price * cartItem.quantity;
   }, 0);
 
   const handleGenerateInvoice = async () => {
@@ -94,6 +102,7 @@ export default function ShopkeeperCart() {
           invoiceNumber={invoiceNumber}
           qrCodeDataUrl={qrCodeDataUrl}
           shopkeeper={shopkeeper}
+          editedPrices={editedPrices}
         />,
       ).toBlob();
       const fileName = `${invoiceNumber}-cart-invoice.pdf`;
@@ -193,7 +202,7 @@ export default function ShopkeeperCart() {
             />
           </div>
           <button
-            onClick={handleGenerateInvoice}
+            onClick={() => setIsPreviewModalOpen(true)}
             disabled={cartItems.length === 0 || isGeneratingInvoice}
             className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#84CC16] px-5 text-sm font-black text-white shadow-lg shadow-lime-500/20 transition hover:bg-[#76b813] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -202,7 +211,7 @@ export default function ShopkeeperCart() {
             ) : (
               <Download className="h-4 w-4" />
             )}
-            Generate Invoice
+            Preview Invoice
           </button>
         </div>
       </div>
@@ -235,6 +244,7 @@ export default function ShopkeeperCart() {
               cartItem={cartItem}
               index={index}
               isDeleting={isDeleting}
+              editedPrice={editedPrices[cartItem._id]}
               onDelete={(cartId) => {
                 deleteCartItem(cartId, {
                   onSuccess: () => toast.success("Cart item deleted"),
@@ -255,6 +265,16 @@ export default function ShopkeeperCart() {
           </p>
         </div>
       )}
+
+      <InvoicePreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        cartItems={cartItems}
+        editedPrices={editedPrices}
+        setEditedPrices={setEditedPrices}
+        onDownload={handleGenerateInvoice}
+        isGeneratingInvoice={isGeneratingInvoice}
+      />
     </div>
   );
 }
@@ -283,14 +303,18 @@ function CartProductCard({
   index,
   isDeleting,
   onDelete,
+  editedPrice,
 }: {
   cartItem: CartItem;
   index: number;
   isDeleting: boolean;
   onDelete: (cartId: string) => void;
+  editedPrice?: number;
 }) {
   const item = cartItem.itemId;
-  const lineTotal = (item.expectedPrice || 0) * cartItem.quantity;
+  const originalPrice = item?.expectedPrice || 0;
+  const currentPrice = editedPrice !== undefined ? editedPrice : originalPrice;
+  const lineTotal = currentPrice * cartItem.quantity;
 
   return (
     <motion.div
@@ -301,10 +325,10 @@ function CartProductCard({
     >
       <div className="flex gap-5 p-5">
         <div className="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-          {item.image?.url ? (
+          {item?.image?.url ? (
             <Image
               src={item.image.url}
-              alt={item.itemName}
+              alt={item?.itemName || "Unknown Item"}
               fill
               className="object-cover"
             />
@@ -318,7 +342,7 @@ function CartProductCard({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-start justify-between gap-3">
             <h3 className="line-clamp-2 text-[15px] font-black leading-tight text-[#0F172A] dark:text-white">
-              {item.itemName}
+              {item?.itemName || "Unknown Item"}
             </h3>
             <div className="flex flex-shrink-0 items-center gap-2">
               <span className="rounded-full bg-[#84CC16] px-2.5 py-1 text-[10px] font-black text-white">
@@ -328,7 +352,7 @@ function CartProductCard({
                 onClick={() => onDelete(cartItem._id)}
                 disabled={isDeleting}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-500 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-red-500/10 cursor-pointer"
-                aria-label={`Delete ${item.itemName} from cart`}
+                aria-label={`Delete ${item?.itemName || "item"} from cart`}
               >
                 <Trash2 size={15} strokeWidth={2.5} />
               </button>
@@ -336,8 +360,8 @@ function CartProductCard({
           </div>
 
           <div className="space-y-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-            <p>IMEI: {item.imeiNumber || "N/A"}</p>
-            <p>Condition: {item.currentState || "N/A"}</p>
+            <p>IMEI: {item?.imeiNumber || "N/A"}</p>
+            <p>Condition: {item?.currentState || "N/A"}</p>
             <p>Added: {new Date(cartItem.createdAt).toLocaleDateString()}</p>
           </div>
 
@@ -346,9 +370,16 @@ function CartProductCard({
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Unit price
               </p>
-              <p className="text-xl font-black text-[#0F172A] dark:text-white">
-                ${item.expectedPrice?.toLocaleString() || 0}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xl font-black text-[#0F172A] dark:text-white">
+                  ${currentPrice.toLocaleString()}
+                </p>
+                {originalPrice > currentPrice && (
+                  <p className="text-xs font-bold text-slate-400 line-through">
+                    ${originalPrice.toLocaleString()}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="rounded-2xl bg-[#84CC16]/10 px-3 py-2 text-right">
               <div className="flex items-center justify-end gap-1 text-[10px] font-black uppercase tracking-widest text-[#84CC16]">

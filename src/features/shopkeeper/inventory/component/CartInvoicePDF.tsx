@@ -245,6 +245,7 @@ export interface CartInvoicePDFProps {
   invoiceNumber: string;
   qrCodeDataUrl?: string;
   shopkeeper?: Shopkeeper;
+  editedPrices?: Record<string, number>;
 }
 
 const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
@@ -254,16 +255,29 @@ export default function CartInvoicePDF({
   invoiceNumber,
   qrCodeDataUrl,
   shopkeeper,
+  editedPrices = {},
 }: CartInvoicePDFProps) {
   const invoiceDate = new Date();
   const dueDate = new Date(invoiceDate);
   dueDate.setDate(invoiceDate.getDate() + 7);
 
-  const subtotal = cartItems.reduce(
+  const originalSubtotal = cartItems.reduce(
     (sum, cartItem) =>
       sum + (cartItem.itemId?.expectedPrice || 0) * cartItem.quantity,
     0,
   );
+
+  const subtotal = cartItems.reduce((sum, cartItem) => {
+    const originalPrice = cartItem.itemId?.expectedPrice || 0;
+    const price =
+      editedPrices[cartItem._id] !== undefined
+        ? editedPrices[cartItem._id]
+        : originalPrice;
+    return sum + price * cartItem.quantity;
+  }, 0);
+
+  const totalDiscount =
+    originalSubtotal > subtotal ? originalSubtotal - subtotal : 0;
   const amountDue = subtotal;
   const shopName = shopkeeper?.shopName || "imoscan";
   const contactEmail = shopkeeper?.email || "info@companyname.com";
@@ -332,7 +346,14 @@ export default function CartInvoicePDF({
 
           {cartItems.map((cartItem, index) => {
             const item = cartItem.itemId;
-            const price = (item.expectedPrice || 0) * cartItem.quantity;
+            const originalPrice = item?.expectedPrice || 0;
+            const price =
+              editedPrices[cartItem._id] !== undefined
+                ? editedPrices[cartItem._id]
+                : originalPrice;
+            const lineTotal = price * cartItem.quantity;
+            const originalLineTotal = originalPrice * cartItem.quantity;
+            const isDiscounted = originalPrice > price;
 
             return (
               <View
@@ -342,19 +363,21 @@ export default function CartInvoicePDF({
                 }
               >
                 <View style={styles.colImage}>
-                  {item.image?.url ? (
+                  {item?.image?.url ? (
                     <Image src={item.image.url} style={styles.productImage} />
                   ) : (
                     <Text style={styles.muted}>No Image</Text>
                   )}
                   <Text style={styles.muted}>
-                    {item.imeiNumber || item.sku || "N/A"}
+                    {item?.imeiNumber || item?.sku || "N/A"}
                   </Text>
                 </View>
                 <View style={styles.colItem}>
-                  <Text style={styles.productName}>{item.itemName}</Text>
+                  <Text style={styles.productName}>
+                    {item?.itemName || "Unknown Item"}
+                  </Text>
                   <Text style={styles.muted}>
-                    IMEI: {item.imeiNumber || "N/A"}
+                    IMEI: {item?.imeiNumber || "N/A"}
                   </Text>
                 </View>
                 <View style={styles.colStatus}>
@@ -362,22 +385,49 @@ export default function CartInvoicePDF({
                   <Text style={styles.muted}>Verified</Text>
                 </View>
                 <View style={styles.colCondition}>
-                  <Text>{item.currentState || "N/A"}</Text>
+                  <Text>{item?.currentState || "N/A"}</Text>
                   <Text style={styles.muted}>Ready to sell</Text>
                 </View>
-                <Text style={styles.colQty}>{cartItem.quantity}</Text>
-                <Text style={styles.colPrice}>{formatCurrency(price)}</Text>
+                <View style={styles.colQty}>
+                  <Text>{cartItem.quantity}</Text>
+                </View>
+                <View style={styles.colPrice}>
+                  {isDiscounted && (
+                    <Text
+                      style={[styles.muted, { textDecoration: "line-through" }]}
+                    >
+                      {formatCurrency(originalLineTotal)}
+                    </Text>
+                  )}
+                  <Text>{formatCurrency(lineTotal)}</Text>
+                  {isDiscounted && originalPrice > 0 && (
+                    <Text
+                      style={{
+                        fontSize: 7,
+                        color: colors.orange,
+                        marginTop: 2,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      -{((1 - price / originalPrice) * 100).toFixed(1)}% OFF
+                    </Text>
+                  )}
+                </View>
               </View>
             );
           })}
 
           <View style={styles.totals}>
+            {totalDiscount > 0 && (
+              <View style={styles.totalLine}>
+                <Text>Total Discount</Text>
+                <Text style={{ color: colors.orange }}>
+                  -{formatCurrency(totalDiscount)}
+                </Text>
+              </View>
+            )}
             <View style={styles.totalLine}>
-              <Text>Trade-in Discount</Text>
-              <Text>{formatCurrency(0)}</Text>
-            </View>
-            <View style={styles.totalLine}>
-              <Text>New Device Purchase</Text>
+              <Text>Subtotal</Text>
               <Text>{formatCurrency(subtotal)}</Text>
             </View>
             <View style={styles.amountDue}>

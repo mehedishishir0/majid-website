@@ -306,7 +306,7 @@ export default function Inventory() {
                     </span>
                     <button
                       onClick={() => handleSell(item)}
-                      className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#84CC16] text-white hover:bg-[#76b813] transition shadow shadow-lime-500/20 active:scale-95 cursor-pointer"
+                      className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-red-500 text-white hover:bg-red-700 transition shadow shadow-red-500/20 active:scale-95 cursor-pointer"
                     >
                       Sell
                     </button>
